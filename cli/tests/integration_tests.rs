@@ -2938,6 +2938,11 @@ itest!(wasm_streaming {
   output: "wasm_streaming.out",
 });
 
+itest!(wasm_streaming_remote {
+  args: "run --allow-net wasm_streaming_remote.js",
+  output: "wasm_streaming.out",
+});
+
 itest!(wasm_unreachable {
   args: "run wasm_unreachable.js",
   output: "wasm_unreachable.out",

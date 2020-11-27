@@ -5,6 +5,7 @@
 #[macro_use]
 extern crate lazy_static;
 
+use bytes::Bytes;
 use futures::future::{self, FutureExt};
 use os_pipe::pipe;
 #[cfg(unix)]
@@ -54,6 +55,13 @@ lazy_static! {
   ).unwrap();
 
   static ref GUARD: Mutex<HttpServerCount> = Mutex::new(HttpServerCount::default());
+
+  static ref ADD_WASM: Bytes = Bytes::from(vec![
+    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x07, 0x01, 0x60, 0x02,
+    0x7f, 0x7f, 0x01, 0x7f, 0x03, 0x02, 0x01, 0x00, 0x07, 0x07, 0x01, 0x03, 0x61,
+    0x64, 0x64, 0x00, 0x00, 0x0a, 0x09, 0x01, 0x07, 0x00, 0x20, 0x00, 0x20, 0x01,
+    0x6a, 0x0b,
+  ]);
 }
 
 pub fn root_path() -> PathBuf {
@@ -435,12 +443,20 @@ pub async fn run_all_servers() {
       res
     }));
 
+  let wasm_server = warp::path("add.wasm").map(|| {
+    let mut res = Response::new(Body::from(ADD_WASM.clone()));
+    let h = res.headers_mut();
+    h.insert("Content-Type", HeaderValue::from_static("application/wasm"));
+    res
+  });
+
   let content_type_handler = warp::any()
     .and(warp::path::peek())
     .and(warp::fs::dir(root_path()))
     .map(custom_headers)
     .or(etag_script)
     .or(xtypescripttypes)
+    .or(wasm_server)
     .or(echo_server)
     .or(echo_multipart_file)
     .or(multipart_form_data)
