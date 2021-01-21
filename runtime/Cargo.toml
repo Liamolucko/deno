@@ -9,6 +9,9 @@ edition = "2018"
 description = "Provides the deno runtime library"
 repository = "https://github.com/denoland/deno"
 
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "docsrs"]
+
 [lib]
 name = "deno_runtime"
 path = "lib.rs"
