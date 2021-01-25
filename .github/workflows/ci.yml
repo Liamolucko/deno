@@ -90,7 +90,7 @@ jobs:
       - name: Install Python
         uses: actions/setup-python@v1
         with:
-          python-version: "2.7"
+          python-version: "3.9"
           architecture: x64
 
       - name: Install Node
@@ -98,14 +98,6 @@ jobs:
         with:
           node-version: "14"
           check-latest: true
-
-      - name: Remove unused versions of Python
-        if: startsWith(matrix.os, 'windows')
-        run: |-
-          $env:PATH -split ";" |
-            Where-Object { Test-Path "$_\python.exe" } |
-            Select-Object -Skip 1 |
-            ForEach-Object { Move-Item "$_" "$_.disabled" }
 
       - name: Setup gcloud (unix)
         if: |
@@ -130,8 +122,6 @@ jobs:
           startsWith(github.ref, 'refs/tags/') &&
           !startsWith(github.ref, 'refs/tags/std/'))
         uses: google-github-actions/setup-gcloud@master
-        env:
-          CLOUDSDK_PYTHON: ${{env.pythonLocation}}\python.exe
         with:
           project_id: denoland
           service_account_key: ${{ secrets.GCP_SA_KEY }}
@@ -149,7 +139,7 @@ jobs:
       - name: Log versions
         run: |
           node -v
-          python --version
+          python3 --version
           rustc --version
           cargo --version
           deno --version
@@ -216,8 +206,6 @@ jobs:
           matrix.kind == 'test_release' &&
           github.repository == 'denoland/deno' &&
           github.ref == 'refs/heads/master'
-        env:
-          CLOUDSDK_PYTHON: ${{env.pythonLocation}}\python.exe
         shell: bash
         run: |
           gsutil cp ./target/release/*.zip gs://dl.deno.land/canary/$(git rev-parse HEAD)/
@@ -232,7 +220,7 @@ jobs:
       - name: Configure hosts file for WPT (windows)
         if: runner.os == 'Windows'
         working-directory: test_util/wpt/
-        run: python wpt make-hosts-file | Out-File $env:SystemRoot\System32\drivers\etc\hosts -Encoding ascii -Append
+        run: python3 wpt make-hosts-file | Out-File $env:SystemRoot\System32\drivers\etc\hosts -Encoding ascii -Append
 
       - name: Test release
         if: matrix.kind == 'test_release'
@@ -290,8 +278,6 @@ jobs:
           github.repository == 'denoland/deno' &&
           startsWith(github.ref, 'refs/tags/') &&
           !startsWith(github.ref, 'refs/tags/std/')
-        env:
-          CLOUDSDK_PYTHON: ${{env.pythonLocation}}\python.exe
         shell: bash
         run: |
           gsutil cp ./target/release/*.zip gs://dl.deno.land/release/${GITHUB_REF#refs/*/}/
