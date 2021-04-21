@@ -4,6 +4,7 @@
 
 // This file contains the runtime APIs which will dispatch work to the internal
 // compiler within Deno.
+"use strict";
 ((window) => {
   const core = window.Deno.core;
   const util = window.__bootstrap.util;
@@ -38,7 +39,7 @@
    * @returns {Promise<OpEmitResponse>}
    */
   function opEmit(request) {
-    return core.jsonOpAsync("op_emit", request);
+    return core.opAsync("op_emit", request);
   }
 
   /**

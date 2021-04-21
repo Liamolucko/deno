@@ -48,7 +48,11 @@ pub async fn get_base_binary(
   }
 
   let archive_data = tokio::fs::read(binary_path).await?;
-  let base_binary_path = crate::tools::upgrade::unpack(archive_data, exe_name)?;
+  let base_binary_path = crate::tools::upgrade::unpack(
+    archive_data,
+    exe_name,
+    target.contains("windows"),
+  )?;
   let base_binary = tokio::fs::read(base_binary_path).await?;
   Ok(base_binary)
 }
@@ -125,14 +129,25 @@ pub fn create_standalone_binary(
 /// is not already standalone binary it will return error instead.
 pub async fn write_standalone_binary(
   output: PathBuf,
+  target: Option<String>,
   final_bin: Vec<u8>,
 ) -> Result<(), AnyError> {
-  let output =
-    if cfg!(windows) && output.extension().unwrap_or_default() != "exe" {
-      PathBuf::from(output.display().to_string() + ".exe")
-    } else {
-      output
-    };
+  let output = match target {
+    Some(target) => {
+      if target.contains("windows") {
+        PathBuf::from(output.display().to_string() + ".exe")
+      } else {
+        output
+      }
+    }
+    None => {
+      if cfg!(windows) && output.extension().unwrap_or_default() != "exe" {
+        PathBuf::from(output.display().to_string() + ".exe")
+      } else {
+        output
+      }
+    }
+  };
 
   if output.exists() {
     // If the output is a directory, throw error
@@ -205,7 +220,7 @@ pub fn compile_to_runtime_flags(
     lock_write: false,
     log_level: flags.log_level,
     no_check: false,
-    no_prompts: flags.no_prompts,
+    prompt: flags.prompt,
     no_remote: false,
     reload: false,
     repl: false,

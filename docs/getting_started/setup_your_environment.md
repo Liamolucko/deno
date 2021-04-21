@@ -69,7 +69,7 @@ command will be `antigen bundle deno` and so on.
 Example (Powershell):
 
 ```shell
-deno completions powershell > $profile
+deno completions powershell >> $profile
 .$profile
 ```
 
@@ -98,7 +98,11 @@ Please report any issues.
 Support for JetBrains IDEs is available through
 [the Deno plugin](https://plugins.jetbrains.com/plugin/14382-deno).
 
-For more information on how to set-up your JetBrains IDE for Deno, read
+Once installed, replace the content of
+`External Libraries > Deno Library > lib > lib.deno.d.ts` with the output of
+`deno types`. This will ensure the typings for the extension match the current
+version. You will have to do this every time you update the version of Deno. For
+more information on how to set-up your JetBrains IDE for Deno, read
 [this comment](https://youtrack.jetbrains.com/issue/WEB-41607#focus=streamItem-27-4160152.0-0)
 on YouTrack.
 
@@ -106,13 +110,49 @@ on YouTrack.
 
 Vim works fairly well for Deno/TypeScript if you install
 [CoC](https://github.com/neoclide/coc.nvim) (intellisense engine and language
-server protocol).
+server protocol) or [ALE](https://github.com/dense-analysis/ale) (syntax checker
+and language server protocol client).
+
+##### CoC
 
 After CoC is installed, from inside Vim, run`:CocInstall coc-tsserver` and
-`:CocInstall coc-deno`. To get autocompletion working for Deno type definitions
-run `:CocCommand deno.types`. Optionally restart the CoC server `:CocRestart`.
-From now on, things like `gd` (go to definition) and `gr` (goto/find references)
-should work.
+`:CocInstall coc-deno`. Run `:CocCommand deno.initializeWorkspace` in your
+project to initialize workspace configurations. From now on, things like `gd`
+(go to definition) and `gr` (goto/find references) should work.
+
+##### ALE
+
+ALE integrates with Deno's LSP out of the box and should not require any extra
+configuration. However, if your Deno executable is not located in `$PATH`, has a
+different name than `deno` or you want to use unstable features/APIs, you need
+to override ALE's default values. See
+[`:help ale-typescript`](https://github.com/dense-analysis/ale/blob/master/doc/ale-typescript.txt).
+
+ALE provides support for autocompletion, refactoring, going to definition,
+finding references and more, however, key bindings need to be configured
+manually. Copy the snippet below into your `vimrc`/`init.vim` for basic
+configuration or consult the
+[official documentation](https://github.com/dense-analysis/ale#table-of-contents)
+for a more in-depth look at how to configure ALE.
+
+ALE can fix linter issues by running `deno fmt`. To instruct ALE to use the Deno
+formatter the `ale_linter` setting needs to be set either on a per buffer basis
+(`let b:ale_linter = ['deno']`) or globally for all TypeScript files
+(`let g:ale_fixers={'typescript': ['deno']}`)
+
+```vim
+" Use ALE autocompletion with Vim's 'omnifunc' setting (press <C-x><C-o> in insert mode)
+autocmd FileType typescript set omnifunc=ale#completion#OmniFunc
+
+" Make sure to use map instead of noremap when using a <Plug>(...) expression as the {rhs}
+nmap gr <Plug>(ale_rename)
+nmap gR <Plug>(ale_find_reference)
+nmap gd <Plug>(ale_go_to_definition)
+nmap gD <Plug>(ale_go_to_type_definition)
+
+let g:ale_fixers = {'typescript': ['deno']}
+let g:ale_fix_on_save = 1 " run deno fmt when saving a buffer
+```
 
 #### Emacs
 
@@ -130,7 +170,7 @@ page, first `npm install --save-dev typescript-deno-plugin typescript` in your
 project (`npm init -y` as necessary), then add the following block to your
 `tsconfig.json` and you are off to the races!
 
-```json
+```jsonc
 {
   "compilerOptions": {
     "plugins": [
@@ -143,6 +183,11 @@ project (`npm init -y` as necessary), then add the following block to your
   }
 }
 ```
+
+#### Atom
+
+Install [atom-ide-base](https://atom.io/packages/atom-ide-base) package and
+[atom-ide-deno](https://atom.io/packages/atom-ide-deno) package on Atom.
 
 #### LSP clients
 
@@ -166,6 +211,10 @@ filetypes = ["typescript", "javascript"]
 roots = [".git"]
 command = "deno"
 args = ["lsp"]
+
+[language.deno.initialization_options]
+enable = true
+lint = true
 ```
 
 ##### Example for Vim/Neovim
@@ -201,7 +250,7 @@ endif
   syntax highlighting
 - Add the following `.sublime-project` file to your project folder
 
-```json
+```jsonc
 {
   "settings": {
     "LSP": {

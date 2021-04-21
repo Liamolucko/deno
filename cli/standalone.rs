@@ -6,6 +6,7 @@ use deno_core::error::type_error;
 use deno_core::error::AnyError;
 use deno_core::error::Context;
 use deno_core::futures::FutureExt;
+use deno_core::resolve_url;
 use deno_core::serde::Deserialize;
 use deno_core::serde::Serialize;
 use deno_core::serde_json;
@@ -14,6 +15,7 @@ use deno_core::v8_set_flags;
 use deno_core::ModuleLoader;
 use deno_core::ModuleSpecifier;
 use deno_core::OpState;
+use deno_runtime::deno_file::BlobUrlStore;
 use deno_runtime::permissions::Permissions;
 use deno_runtime::permissions::PermissionsOptions;
 use deno_runtime::worker::MainWorker;
@@ -46,14 +48,14 @@ pub struct Metadata {
 pub const MAGIC_TRAILER: &[u8; 8] = b"d3n0l4nd";
 
 /// This function will try to run this binary as a standalone binary
-/// produced by `deno compile`. It determines if this is a stanalone
+/// produced by `deno compile`. It determines if this is a standalone
 /// binary by checking for the magic trailer string `D3N0` at EOF-12.
 /// The magic trailer is followed by:
 /// - a u64 pointer to the JS bundle embedded in the binary
 /// - a u64 pointer to JSON metadata (serialized flags) embedded in the binary
 /// These are dereferenced, and the bundle is executed under the configuration
 /// specified by the metadata. If no magic trailer is present, this function
-/// exits with `Ok(())`.
+/// exits with `Ok(None)`.
 pub fn extract_standalone(
   args: Vec<String>,
 ) -> Result<Option<(Metadata, String)>, AnyError> {
@@ -123,7 +125,7 @@ impl ModuleLoader for EmbeddedModuleLoader {
         "Self-contained binaries don't support module loading",
       ));
     }
-    Ok(ModuleSpecifier::resolve_url(specifier)?)
+    Ok(resolve_url(specifier)?)
   }
 
   fn load(
@@ -155,8 +157,9 @@ pub async fn run(
   source_code: String,
   metadata: Metadata,
 ) -> Result<(), AnyError> {
-  let main_module = ModuleSpecifier::resolve_url(SPECIFIER)?;
+  let main_module = resolve_url(SPECIFIER)?;
   let permissions = Permissions::from_options(&metadata.permissions);
+  let blob_url_store = BlobUrlStore::default();
   let module_loader = Rc::new(EmbeddedModuleLoader(source_code));
   let create_web_worker_cb = Arc::new(|_| {
     todo!("Worker are currently not supported in standalone binaries");
@@ -188,6 +191,7 @@ pub async fn run(
     no_color: !colors::use_color(),
     get_error_class_fn: Some(&get_error_class_name),
     location: metadata.location,
+    blob_url_store,
   };
   let mut worker =
     MainWorker::from_options(main_module.clone(), permissions, &options);

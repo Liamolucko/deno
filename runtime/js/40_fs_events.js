@@ -1,4 +1,5 @@
 // Copyright 2018-2021 the Deno authors. All rights reserved. MIT license.
+"use strict";
 
 ((window) => {
   const core = window.Deno.core;
@@ -9,7 +10,7 @@
 
     constructor(paths, options) {
       const { recursive } = options;
-      this.#rid = core.jsonOpSync("op_fs_events_open", { recursive, paths });
+      this.#rid = core.opSync("op_fs_events_open", { recursive, paths });
     }
 
     get rid() {
@@ -18,9 +19,10 @@
 
     async next() {
       try {
-        return await core.jsonOpAsync("op_fs_events_poll", {
-          rid: this.rid,
-        });
+        const value = await core.opAsync("op_fs_events_poll", this.rid);
+        return value
+          ? { value, done: false }
+          : { value: undefined, done: true };
       } catch (error) {
         if (error instanceof errors.BadResource) {
           return { value: undefined, done: true };

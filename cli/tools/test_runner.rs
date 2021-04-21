@@ -6,7 +6,6 @@ use deno_core::error::AnyError;
 use deno_core::serde_json::json;
 use deno_core::url::Url;
 use std::path::Path;
-use std::path::PathBuf;
 
 fn is_supported(p: &Path) -> bool {
   use std::path::Component;
@@ -34,7 +33,7 @@ fn is_supported(p: &Path) -> bool {
 
 pub fn prepare_test_modules_urls(
   include: Vec<String>,
-  root_path: &PathBuf,
+  root_path: &Path,
 ) -> Result<Vec<Url>, AnyError> {
   let (include_paths, include_urls): (Vec<String>, Vec<String>) =
     include.into_iter().partition(|n| !is_remote_url(n));
@@ -149,7 +148,12 @@ mod tests {
 
   #[test]
   fn supports_dirs() {
-    let root = test_util::root_path().join("std").join("http");
+    // TODO(caspervonb) generate some fixtures in a temporary directory instead, there's no need
+    // for this to rely on external fixtures.
+    let root = test_util::root_path()
+      .join("test_util")
+      .join("std")
+      .join("http");
     println!("root {:?}", root);
     let mut matched_urls =
       prepare_test_modules_urls(vec![".".to_string()], &root).unwrap();
